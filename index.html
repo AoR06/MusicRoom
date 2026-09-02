@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#1B1523" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Listening Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===================== HOME VIEW ===================== -->
+<main id="home-view" class="view">
+  <div class="home-wrap">
+    <div class="hero">
+      <div class="hero-mark" aria-hidden="true">
+        <svg viewBox="0 0 120 40" class="waveform">
+          <rect x="0" y="14" width="4" height="12"></rect>
+          <rect x="8" y="6" width="4" height="28"></rect>
+          <rect x="16" y="0" width="4" height="40"></rect>
+          <rect x="24" y="10" width="4" height="20"></rect>
+          <rect x="32" y="16" width="4" height="8"></rect>
+          <rect x="40" y="4" width="4" height="32"></rect>
+          <rect x="48" y="12" width="4" height="16"></rect>
+          <rect x="56" y="0" width="4" height="40"></rect>
+          <rect x="64" y="10" width="4" height="20"></rect>
+          <rect x="72" y="16" width="4" height="8"></rect>
+          <rect x="80" y="6" width="4" height="28"></rect>
+          <rect x="88" y="14" width="4" height="12"></rect>
+          <rect x="96" y="2" width="4" height="36"></rect>
+          <rect x="104" y="12" width="4" height="16"></rect>
+          <rect x="112" y="16" width="4" height="8"></rect>
+        </svg>
+      </div>
+      <h1>Same song,<br>same second.</h1>
+      <p class="hero-sub">Start a room, share the code, and everyone hears the same track at the same moment — no accounts, no downloads.</p>
+    </div>
+
+    <div class="cards">
+      <section class="card">
+        <h2>Host a room</h2>
+        <p class="card-sub">You'll control what plays. Friends can still add songs to the queue.</p>
+        <form id="create-form">
+          <label for="create-username">Your name</label>
+          <input id="create-username" maxlength="24" placeholder="e.g. Priya" required autocomplete="off" />
+          <button type="submit" class="btn btn-primary">Create room</button>
+        </form>
+      </section>
+
+      <div class="divider" aria-hidden="true"><span>or</span></div>
+
+      <section class="card">
+        <h2>Join a room</h2>
+        <p class="card-sub">Get the code from whoever's hosting.</p>
+        <form id="join-form">
+          <label for="join-username">Your name</label>
+          <input id="join-username" maxlength="24" placeholder="e.g. Rahul" required autocomplete="off" />
+          <label for="join-code">Room code</label>
+          <input id="join-code" maxlength="5" placeholder="ABCDE" required autocomplete="off" class="code-input" autocapitalize="characters" spellcheck="false" inputmode="text" />
+          <button type="submit" class="btn btn-secondary">Join room</button>
+        </form>
+      </section>
+    </div>
+
+    <p id="home-error" class="error" role="alert"></p>
+  </div>
+</main>
+
+<!-- ===================== ROOM VIEW ===================== -->
+<main id="room-view" class="view hidden">
+  <header class="room-header">
+    <div class="room-code-tag">
+      <span class="room-code-label">Room</span>
+      <span id="room-code-display" class="room-code-value">-----</span>
+    </div>
+    <div id="people-pills" class="people-pills"></div>
+    <button id="leave-btn" class="btn btn-ghost">Leave</button>
+  </header>
+
+  <div class="room-body">
+    <section class="queue-panel">
+      <div class="panel-heading">
+        <h2>Queue</h2>
+        <label class="btn btn-primary btn-small file-btn">
+          + Add a song
+          <input id="file-input" type="file" accept=".mp3,audio/mpeg" hidden />
+        </label>
+      </div>
+      <p id="upload-status" class="upload-status"></p>
+      <ul id="queue-list" class="queue-list"></ul>
+      <p id="queue-empty" class="empty-state">No songs yet — add one to get the room going.</p>
+    </section>
+
+    <section class="now-playing-panel">
+      <span class="panel-eyebrow" id="host-badge"></span>
+      <div id="now-playing-empty" class="empty-state large">Nothing's playing. Add a song to start the room.</div>
+
+      <div id="now-playing-content" class="hidden">
+        <h2 id="track-title">-</h2>
+        <p id="track-added-by" class="track-meta"></p>
+
+        <div class="progress-wrap">
+          <div class="progress-track" id="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="time-row">
+            <span id="time-current">0:00</span>
+            <span id="time-total">0:00</span>
+          </div>
+        </div>
+
+        <div id="host-controls" class="transport hidden">
+          <button id="play-pause-btn" class="transport-btn primary" aria-label="Play or pause">
+            <svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="icon-pause" viewBox="0 0 24 24" class="hidden"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </button>
+          <button id="skip-btn" class="transport-btn" aria-label="Skip">
+            <svg viewBox="0 0 24 24"><path d="M6 5l10 7-10 7V5zM17 5h2v14h-2z"/></svg>
+          </button>
+        </div>
+        <p id="listener-note" class="listener-note">Only the host can control playback.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<audio id="audio-el" preload="auto" playsinline></audio>
+
+<button id="enable-audio-btn" class="enable-audio-btn hidden">
+  ▶ Tap to start listening
+</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
