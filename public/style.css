@@ -1,308 +1,479 @@
-/* ---------------------------------------------------------------
-   Design tokens
-   Background: deep ink plum. Accent: warm stage-light amber.
-   Display type: Fraunces (personality). UI type: Space Grotesk.
-----------------------------------------------------------------*/
-:root{
-  --bg: #1B1523;
-  --panel: #241C2E;
-  --panel-raised: #2C2237;
-  --line: #3A2E47;
-  --text: #F2EDE4;
-  --text-muted: #A79BB8;
-  --amber: #E8A94C;
-  --amber-strong: #F0BE73;
-  --coral: #E85D75;
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-}
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
 
-*{ box-sizing: border-box; }
+  const audioEl = $('#audio-el');
+  const enableAudioBtn = $('#enable-audio-btn');
+  const socket = io();
 
-html, body{
-  margin:0;
-  min-height:100vh;
-  background: radial-gradient(120% 140% at 15% 0%, #241A30 0%, #1B1523 55%, #150F1C 100%);
-  color: var(--text);
-  font-family: 'Space Grotesk', sans-serif;
-}
+  // ---------------------------------------------------------------
+  // Clock sync: estimate our offset from the server's clock so every
+  // listener can compute the same "what position should play now".
+  // ---------------------------------------------------------------
+  let clockOffset = 0; // serverTime ≈ Date.now() + clockOffset
 
-h1, h2{
-  font-family: 'Fraunces', serif;
-  font-weight: 500;
-  margin: 0;
-}
+  function syncClock(rounds = 5) {
+    return new Promise((resolve) => {
+      let best = null;
+      let done = 0;
+      const ping = () => socket.emit('time-sync', Date.now());
+      const onReply = ({ clientTime, serverTime }) => {
+        const t3 = Date.now();
+        const rtt = t3 - clientTime;
+        const offset = serverTime - (clientTime + t3) / 2;
+        if (!best || rtt < best.rtt) best = { rtt, offset };
+        done += 1;
+        if (done >= rounds) {
+          socket.off('time-sync-reply', onReply);
+          clockOffset = best.offset;
+          resolve();
+        } else {
+          setTimeout(ping, 80);
+        }
+      };
+      socket.on('time-sync-reply', onReply);
+      ping();
+    });
+  }
 
-button, input{ font-family: inherit; }
+  const serverNow = () => Date.now() + clockOffset;
 
-.hidden{ display:none !important; }
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+  let session = { code: null, username: null, hostToken: null, isHost: false };
+  let state = null;
+  let loadedTrackId = null;
+  let resyncTimer = null;
+  let busy = false;
 
-/* ---------------- Home view ---------------- */
-.home-wrap{
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 64px 24px 48px;
-}
+  // ---------------------------------------------------------------
+  // Small helpers
+  // ---------------------------------------------------------------
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
 
-.hero{ max-width: 560px; margin-bottom: 48px; }
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
 
-.waveform{ width: 96px; height: 32px; fill: var(--amber); margin-bottom: 20px; }
-.waveform rect{ opacity: 0.9; }
-.waveform rect:nth-child(3n){ fill: var(--coral); }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (_) { return false; }
+  }
 
-.hero h1{
-  font-size: 44px;
-  line-height: 1.08;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
+  function formatTime(sec) {
+    if (!Number.isFinite(sec) || sec < 0) sec = 0;
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
 
-.hero-sub{
-  margin-top: 16px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--text-muted);
-  max-width: 46ch;
-}
+  function initials(name) {
+    return (name || '?').trim().slice(0, 2).toUpperCase();
+  }
 
-.cards{
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  gap: 8px;
-}
+  function avatarGradient(name) {
+    let h = 0;
+    for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+    return `linear-gradient(135deg, hsl(${h},75%,62%), hsl(${(h + 50) % 360},70%, 48%))`;
+  }
 
-.card{
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-}
+  // ---------------------------------------------------------------
+  // Navigation between screens
+  // ---------------------------------------------------------------
+  const VIEWS = ['home', 'room'];
 
-.card h2{ font-size: 22px; color: var(--text); }
-.card-sub{ color: var(--text-muted); font-size: 14px; margin: 8px 0 20px; line-height: 1.5; }
+  function show(name) {
+    VIEWS.forEach((v) => $(`#${v}-view`).classList.toggle('hidden', v !== name));
+    $$('.error').forEach((e) => { e.textContent = ''; });
+    window.scrollTo(0, 0);
+  }
 
-.divider{
-  display:flex; align-items:center; justify-content:center;
-  color: var(--text-muted);
-  font-size: 13px;
-  width: 32px;
-}
+  // ---------------------------------------------------------------
+  // Light / dark theme (the saved choice is applied before first paint
+  // by a tiny script in index.html; this handles the toggle buttons)
+  // ---------------------------------------------------------------
+  const root = document.documentElement;
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#F4ECFB' : '#0F0A1E');
+  }
+  applyTheme(root.getAttribute('data-theme') || 'dark');
 
-form{ display:flex; flex-direction:column; gap: 6px; margin-top: auto; }
+  $$('.js-theme-btn').forEach((btn) => btn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    try { localStorage.setItem('musiq-theme', next); } catch (_) { /* private mode, ignore */ }
+  }));
 
-label{ font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+  function setTab(name) {
+    $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+    $('#tab-playing').classList.toggle('hidden', name !== 'playing');
+    $('#tab-queue').classList.toggle('hidden', name !== 'queue');
+  }
+  $$('.tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
 
-input{
-  background: var(--panel-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  padding: 12px 14px;
-  font-size: 16px; /* 16px+ stops iOS Safari zooming in on focus */
-  outline: none;
-  width: 100%;
-}
-input:focus{ border-color: var(--amber); }
-.code-input{ letter-spacing: 0.2em; text-transform: uppercase; font-family: 'Fraunces', serif; font-size: 18px; }
+  function openAdd() { $('#add-view').classList.remove('hidden'); }
+  function closeAdd() { $('#add-view').classList.add('hidden'); }
+  $$('.js-open-add').forEach((b) => b.addEventListener('click', openAdd));
+  $('#add-close-btn').addEventListener('click', closeAdd);
 
-.btn{
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 13px 18px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.08s ease, filter 0.15s ease;
-}
-.btn:active{ transform: scale(0.98); }
-.btn-primary{ background: var(--amber); color: #1B1523; margin-top: 16px; }
-.btn-primary:hover{ filter: brightness(1.08); }
-.btn-secondary{ background: transparent; border: 1px solid var(--amber); color: var(--amber-strong); margin-top: 16px; }
-.btn-secondary:hover{ background: rgba(232,169,76,0.1); }
-.btn-ghost{ background: transparent; color: var(--text-muted); border: 1px solid var(--line); }
-.btn-ghost:hover{ color: var(--text); border-color: var(--text-muted); }
-.btn-small{ padding: 8px 14px; font-size: 13px; }
+  // Join link support: /?room=ABCDE jumps straight to the join screen
+  const preRoom = new URLSearchParams(location.search).get('room');
+  if (preRoom) {
+    $('#join-code').value = preRoom.toUpperCase().slice(0, 5);
+    setTimeout(() => {
+      $('#join-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('#join-username').focus({ preventScroll: true });
+    }, 300);
+  }
+  $('#join-code').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase(); });
 
-.error{ color: var(--coral); min-height: 20px; margin-top: 20px; font-size: 14px; }
+  // ---------------------------------------------------------------
+  // Create / join
+  // ---------------------------------------------------------------
+  async function enterRoom({ code, username, hostToken }, errorEl) {
+    await syncClock();
+    return new Promise((resolve) => {
+      socket.emit('join-room', { code, username, hostToken }, (resp) => {
+        if (!resp || resp.error) {
+          errorEl.textContent = resp?.error || 'Could not join the room.';
+          return resolve(false);
+        }
+        session = { code, username, hostToken, isHost: resp.isHost };
+        state = resp.state;
+        $('#room-code-display').textContent = code;
+        show('room');
+        setTab('playing');
+        renderAll();
+        resolve(true);
+      });
+    });
+  }
 
-/* ---------------- Room view ---------------- */
-.room-header{
-  display:flex; align-items:center; gap: 16px;
-  padding: 18px 28px;
-  border-bottom: 1px solid var(--line);
-}
+  $('#create-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const errorEl = $('#host-error');
+    errorEl.textContent = '';
+    const username = $('#create-username').value.trim();
+    if (!username) return;
+    busy = true;
+    try {
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not create the room.');
+      await enterRoom({ code: data.code, username, hostToken: data.hostToken }, errorEl);
+    } catch (err) {
+      errorEl.textContent = err.message;
+    } finally {
+      busy = false;
+    }
+  });
 
-.room-code-tag{
-  display:flex; align-items:baseline; gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 16px;
-}
-.room-code-label{ font-size: 11px; color: var(--text-muted); text-transform: lowercase; }
-.room-code-value{ font-family: 'Fraunces', serif; font-size: 18px; letter-spacing: 0.15em; color: var(--amber-strong); }
+  $('#join-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const errorEl = $('#join-error');
+    errorEl.textContent = '';
+    const username = $('#join-username').value.trim();
+    const code = $('#join-code').value.trim().toUpperCase();
+    if (!username || !code) return;
+    busy = true;
+    try {
+      await enterRoom({ code, username, hostToken: null }, errorEl);
+    } finally {
+      busy = false;
+    }
+  });
 
-.people-pills{ display:flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.person-pill{
-  background: var(--panel-raised);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 13px;
-  color: var(--text-muted);
-  display:flex; align-items:center; gap:6px;
-}
-.person-pill.is-host{ color: var(--amber-strong); border-color: rgba(232,169,76,0.4); }
-.person-pill .dot{ width:6px; height:6px; border-radius:50%; background: var(--amber); }
+  // ---------------------------------------------------------------
+  // Socket events (server -> client)
+  // ---------------------------------------------------------------
+  socket.on('room-updated', (s) => { state = s; renderPeople(); renderQueue(); });
+  socket.on('queue-updated', (s) => { state = s; renderQueue(); renderNowPlaying(); });
+  socket.on('playback-update', (s) => { state = s; renderQueue(); renderNowPlaying(); });
+  socket.on('room-closed', ({ reason }) => {
+    alert(reason === 'host-left'
+      ? 'The host left and the room has closed.'
+      : 'This room closed due to inactivity.');
+    window.location.href = '/';
+  });
 
-.room-body{
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 0;
-  min-height: calc(100vh - 73px);
-}
+  // If the connection drops (common on phones) and comes back, rejoin quietly.
+  socket.on('connect', async () => {
+    if (!session.code) return;
+    await syncClock();
+    socket.emit('join-room', {
+      code: session.code, username: session.username, hostToken: session.hostToken,
+    }, (resp) => {
+      if (!resp || resp.error) {
+        alert('This room is no longer available.');
+        window.location.href = '/';
+        return;
+      }
+      session.isHost = resp.isHost;
+      state = resp.state;
+      renderAll();
+    });
+  });
 
-.queue-panel{
-  padding: 28px;
-  border-right: 1px solid var(--line);
-  overflow-y: auto;
-}
+  // ---------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------
+  function renderAll() { renderPeople(); renderQueue(); renderNowPlaying(); }
 
-.panel-heading{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
-.panel-heading h2{ font-size: 20px; }
-.file-btn{ display:inline-flex; align-items:center; }
+  function renderPeople() {
+    $('#listening-count').textContent = `${state.users.length} listening now`;
+    $('#host-badge').textContent = session.isHost ? 'You are hosting' : '';
 
-.upload-status{ font-size: 13px; color: var(--text-muted); min-height: 18px; margin: 0 0 8px; }
+    const wrap = $('#avatars');
+    wrap.innerHTML = '';
+    const MAX = 4;
+    state.users.slice(0, MAX).forEach((u) => {
+      const a = document.createElement('span');
+      a.className = 'avatar' + (u.isHost ? ' is-host' : '');
+      a.style.background = avatarGradient(u.username);
+      a.title = u.username + (u.isHost ? ' (host)' : '');
+      a.textContent = initials(u.username);
+      wrap.appendChild(a);
+    });
+    if (state.users.length > MAX) {
+      const more = document.createElement('span');
+      more.className = 'avatar more';
+      more.textContent = `+${state.users.length - MAX}`;
+      wrap.appendChild(more);
+    }
+  }
 
-.queue-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  function renderQueue() {
+    $('#queue-count').textContent = state.queue.length;
+    const list = $('#queue-list');
+    const empty = $('#queue-empty');
+    list.innerHTML = '';
+    empty.classList.toggle('hidden', state.queue.length > 0);
 
-.queue-item{
-  display:flex; align-items:center; gap: 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-}
-.queue-item.is-current{ border-color: var(--amber); background: rgba(232,169,76,0.08); }
+    state.queue.forEach((track, i) => {
+      const isCurrent = i === state.currentIndex;
+      const who = track.addedBy === session.username ? 'You' : track.addedBy;
+      const li = document.createElement('li');
+      li.className = 'queue-item'
+        + (isCurrent ? ' is-current' : '')
+        + (isCurrent && !state.playback.isPlaying ? ' paused' : '');
+      li.innerHTML = `
+        <span class="q-badge">${isCurrent ? '<span class="eq"><i></i><i></i><i></i></span>' : i + 1}</span>
+        <span class="q-meta">
+          <span class="q-name">${escapeHtml(track.name)}</span>
+          <span class="q-sub">${isCurrent ? 'Playing now · ' : ''}Added by ${escapeHtml(who)}</span>
+        </span>`;
+      if (session.isHost) {
+        const rm = document.createElement('button');
+        rm.className = 'q-remove';
+        rm.setAttribute('aria-label', 'Remove song');
+        rm.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+        rm.addEventListener('click', () => socket.emit('remove-song', track.id));
+        li.appendChild(rm);
+      }
+      list.appendChild(li);
+    });
+  }
 
-.queue-index{ font-family:'Fraunces', serif; color: var(--text-muted); width: 20px; text-align:center; font-size:14px; }
-.queue-item.is-current .queue-index{ color: var(--amber); }
+  function currentTrackMeta() {
+    if (!state || state.currentIndex < 0) return null;
+    return state.queue[state.currentIndex] || null;
+  }
 
-.queue-meta{ flex:1; min-width:0; }
-.queue-name{ font-size: 14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.queue-added-by{ font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  function renderNowPlaying() {
+    const track = currentTrackMeta();
+    const emptyEl = $('#now-playing-empty');
+    const contentEl = $('#now-playing-content');
 
-.queue-remove{
-  background: none; border: none; color: var(--text-muted);
-  cursor: pointer; font-size: 20px; line-height:1;
-  width: 36px; height: 36px; border-radius: 8px;
-  display:flex; align-items:center; justify-content:center;
-  flex-shrink: 0;
-}
-.queue-remove:hover{ color: var(--coral); background: rgba(232,93,117,0.1); }
+    if (!track) {
+      emptyEl.classList.remove('hidden');
+      contentEl.classList.add('hidden');
+      audioEl.pause();
+      audioEl.removeAttribute('src');
+      loadedTrackId = null;
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    contentEl.classList.remove('hidden');
 
-.empty-state{ color: var(--text-muted); font-size: 14px; padding: 24px 0; }
-.empty-state.large{ font-size: 16px; padding: 60px 0; text-align:center; }
+    $('#track-title').textContent = track.name;
+    $('#track-added-by').textContent = `Added by ${track.addedBy === session.username ? 'You' : track.addedBy}`;
+    $('#host-controls').classList.toggle('hidden', !session.isHost);
+    $('#listener-note').classList.toggle('hidden', session.isHost);
 
-.now-playing-panel{
-  padding: 28px;
-  display:flex; flex-direction:column;
-}
+    if (loadedTrackId !== track.id) {
+      loadedTrackId = track.id;
+      audioEl.src = `/api/rooms/${session.code}/tracks/${track.id}`;
+      // Seeking before metadata loads is unreliable, so re-apply once it's ready.
+      audioEl.addEventListener('loadedmetadata', applyPlaybackState, { once: true });
+      updateMediaSession(track);
+    }
 
-.panel-eyebrow{ font-size: 12px; color: var(--amber-strong); min-height: 16px; }
+    applyPlaybackState();
+    const playing = state.playback.isPlaying;
+    $('#icon-play').classList.toggle('hidden', playing);
+    $('#icon-pause').classList.toggle('hidden', !playing);
+    startResyncLoop();
+  }
 
-#track-title{ font-size: 30px; margin-top: 30vh; margin-bottom:4px; max-width: 90%; }
-#now-playing-content.hidden ~ #now-playing-empty{ display:block; }
+  // Lock-screen / notification controls so audio keeps behaving like a media app
+  function updateMediaSession(track) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.name,
+        artist: `Added by ${track.addedBy}`,
+        album: 'Musiq',
+      });
+      const set = (action, fn) => { try { navigator.mediaSession.setActionHandler(action, fn); } catch (_) {} };
+      if (session.isHost) {
+        set('play', () => socket.emit('playback-play'));
+        set('pause', () => socket.emit('playback-pause'));
+        set('nexttrack', () => socket.emit('playback-skip'));
+      }
+    } catch (_) { /* not supported, ignore */ }
+  }
 
-.track-meta{ color: var(--text-muted); font-size: 14px; margin: 0 0 28px; }
+  // ---------------------------------------------------------------
+  // Playback sync: nudge the local <audio> toward the server's position
+  // ---------------------------------------------------------------
+  function expectedPositionMs() {
+    const pb = state.playback;
+    if (!pb.startedAt) return 0;
+    return pb.isPlaying ? serverNow() - pb.startedAt : pb.pausedAtPositionMs;
+  }
 
-.progress-wrap{ margin-bottom: 28px; }
-.progress-track{
-  height: 6px;
-  border-radius: 999px;
-  background: var(--panel-raised);
-  border: 1px solid var(--line);
-  overflow:hidden;
-  cursor: pointer;
-}
-.progress-fill{
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--amber), var(--coral));
-}
-.time-row{
-  display:flex; justify-content:space-between;
-  font-size: 12px; color: var(--text-muted); margin-top: 8px;
-  font-variant-numeric: tabular-nums;
-}
+  function applyPlaybackState() {
+    if (!state || !audioEl.src) return;
+    const targetSec = Math.max(0, expectedPositionMs() / 1000);
+    const drift = Math.abs(audioEl.currentTime - targetSec);
+    if (drift > 0.35 || Number.isNaN(audioEl.currentTime)) {
+      try { audioEl.currentTime = targetSec; } catch (_) {}
+    }
+    if (state.playback.isPlaying) {
+      audioEl.play().then(() => {
+        enableAudioBtn.classList.add('hidden');
+      }).catch(() => {
+        // Phones block audio the person didn't start with a tap — offer a one-tap unlock.
+        enableAudioBtn.classList.remove('hidden');
+      });
+    } else {
+      audioEl.pause();
+      enableAudioBtn.classList.add('hidden');
+    }
+  }
 
-.transport{ display:flex; align-items:center; gap: 14px; }
-.transport-btn{
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel-raised);
-  color: var(--text);
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer;
-}
-.transport-btn svg{ width: 22px; height:22px; fill: currentColor; }
-.transport-btn.primary{ background: var(--amber); border-color: var(--amber); color: #1B1523; width: 60px; height: 60px; }
-.transport-btn.primary svg{ width: 26px; height: 26px; }
-.transport-btn:hover{ filter: brightness(1.1); }
+  enableAudioBtn.addEventListener('click', () => {
+    audioEl.play().then(() => enableAudioBtn.classList.add('hidden')).catch(() => {});
+  });
 
-.listener-note{ font-size: 13px; color: var(--text-muted); margin-top: 14px; }
+  function startResyncLoop() {
+    if (resyncTimer) clearInterval(resyncTimer);
+    resyncTimer = setInterval(() => {
+      if (state && state.currentIndex >= 0) applyPlaybackState();
+    }, 2500);
+  }
 
-@media (max-width: 820px){
-  .cards{ grid-template-columns: 1fr; }
-  .divider{ width:auto; padding: 4px 0; }
-  .room-body{ grid-template-columns: 1fr; }
-  .queue-panel{ border-right:none; border-bottom: 1px solid var(--line); }
-  #track-title{ margin-top: 40px; }
-}
+  audioEl.addEventListener('timeupdate', () => {
+    $('#time-current').textContent = formatTime(audioEl.currentTime);
+    if (Number.isFinite(audioEl.duration)) $('#time-total').textContent = formatTime(audioEl.duration);
+    const pct = audioEl.duration ? (audioEl.currentTime / audioEl.duration) * 100 : 0;
+    $('#progress-fill').style.width = `${pct}%`;
+    $('#progress-knob').style.left = `${pct}%`;
+  });
 
-@media (max-width: 480px){
-  .home-wrap{ padding: 40px 16px 32px; }
-  .hero h1{ font-size: 32px; }
-  .hero-sub{ font-size: 14px; }
-  .card{ padding: 20px; }
-  .room-header{ padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
-  .people-pills{ order: 3; width: 100%; }
-  .queue-panel, .now-playing-panel{ padding: 20px 16px; }
-  #track-title{ font-size: 24px; margin-top: 24px; }
-  .transport-btn{ width: 48px; height: 48px; }
-  .transport-btn.primary{ width: 56px; height: 56px; }
-}
+  audioEl.addEventListener('ended', () => {
+    // Name the track that ended so the server only advances once, not once per listener.
+    socket.emit('track-ended', loadedTrackId);
+  });
 
-/* Larger, easier-to-hit tap targets and no lingering tap-highlight flash */
-button, .btn, input, .queue-remove{
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
+  // ---------------------------------------------------------------
+  // Host controls
+  // ---------------------------------------------------------------
+  $('#play-pause-btn').addEventListener('click', () => {
+    if (!session.isHost) return;
+    // This tap also unlocks audio on phones for the host.
+    audioEl.play().catch(() => {});
+    socket.emit(state.playback.isPlaying ? 'playback-pause' : 'playback-play');
+  });
 
-.enable-audio-btn{
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--amber);
-  color: #1B1523;
-  border: none;
-  border-radius: 999px;
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  cursor: pointer;
-  z-index: 10;
-}
+  $('#skip-btn').addEventListener('click', () => {
+    if (session.isHost) socket.emit('playback-skip');
+  });
 
-:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+  $('#progress-track').addEventListener('click', (e) => {
+    if (!session.isHost || !audioEl.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    socket.emit('playback-seek', pct * audioEl.duration * 1000);
+  });
 
-@media (prefers-reduced-motion: reduce){
-  .btn, .transport-btn{ transition: none; }
-}
+  // ---------------------------------------------------------------
+  // Add song (upload)
+  // ---------------------------------------------------------------
+  $('#file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const statusEl = $('#upload-status');
+    statusEl.textContent = `Uploading ${file.name}…`;
+    const form = new FormData();
+    form.append('file', file);
+    form.append('username', session.username);
+    form.append('displayName', file.name.replace(/\.mp3$/i, ''));
+    try {
+      const res = await fetch(`/api/rooms/${session.code}/upload`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      statusEl.textContent = `Added "${data.track.name}" ✓`;
+      setTimeout(() => { closeAdd(); setTab('queue'); statusEl.textContent = ''; }, 800);
+    } catch (err) {
+      statusEl.textContent = err.message;
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  // ---------------------------------------------------------------
+  // Room header actions
+  // ---------------------------------------------------------------
+  $('#copy-code-btn').addEventListener('click', async () => {
+    const ok = await copyText(session.code);
+    toast(ok ? 'Room code copied' : `Room code: ${session.code}`);
+  });
+
+  $('#invite-btn').addEventListener('click', async () => {
+    const url = `${location.origin}/?room=${session.code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Join my Musiq room', text: `Join my Musiq room — code ${session.code}`, url });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    const ok = await copyText(url);
+    toast(ok ? 'Invite link copied' : url);
+  });
+
+  $('#leave-btn').addEventListener('click', () => {
+    socket.emit('leave-room');
+    window.location.href = '/';
+  });
+})();
+     
