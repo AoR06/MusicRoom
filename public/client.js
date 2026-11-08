@@ -5,6 +5,7 @@
   const homeView = $('#home-view');
   const roomView = $('#room-view');
   const homeError = $('#home-error');
+  const fileInput = $('#file-input');
 
   const audioEl = $('#audio-el');
   const socket = io();
@@ -12,8 +13,8 @@
   // ---------------------------------------------------------------
   // Theme Switching (Dark / Light)
   // ---------------------------------------------------------------
-  const currentTheme = localStorage.getItem('musiq-theme') || 'dark';
-  applyTheme(currentTheme);
+  const savedTheme = localStorage.getItem('musiq-theme') || 'dark';
+  applyTheme(savedTheme);
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
@@ -37,15 +38,27 @@
     applyTheme(isDark ? 'light' : 'dark');
   }
 
-  $('#theme-toggle-home')?.addEventListener('click', toggleTheme);
-  $('#theme-toggle-room')?.addEventListener('click', toggleTheme);
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.theme-toggle-btn');
+    if (toggleBtn) {
+      e.preventDefault();
+      toggleTheme();
+    }
+  });
+
+  // Global handler for all upload button triggers
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.trigger-upload-btn')) {
+      fileInput.click();
+    }
+  });
 
   // ---------------------------------------------------------------
-  // Clock Synchronization across server and clients
+  // Fast Background Clock Synchronization
   // ---------------------------------------------------------------
   let clockOffset = 0;
 
-  function syncClock(rounds = 5) {
+  function syncClock(rounds = 3) {
     let best = null;
     let done = 0;
     return new Promise((resolve) => {
@@ -53,19 +66,21 @@
         const t0 = Date.now();
         socket.emit('time-sync', t0);
       }
-      socket.on('time-sync-reply', ({ clientTime, serverTime }) => {
+      const handler = ({ clientTime, serverTime }) => {
         const t3 = Date.now();
         const rtt = t3 - clientTime;
         const offset = serverTime - (clientTime + t3) / 2;
         if (best === null || rtt < best.rtt) best = { rtt, offset };
         done += 1;
         if (done >= rounds) {
+          socket.off('time-sync-reply', handler);
           clockOffset = best.offset;
           resolve();
         } else {
-          setTimeout(ping, 80);
+          setTimeout(ping, 20);
         }
-      });
+      };
+      socket.on('time-sync-reply', handler);
       ping();
     });
   }
@@ -83,13 +98,18 @@
   function showError(msg) { homeError.textContent = msg || ''; }
 
   // ---------------------------------------------------------------
-  // Home Form Submission
+  // Fast Room Create & Join Handlers
   // ---------------------------------------------------------------
   $('#create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     showError('');
     const username = $('#create-username').value.trim();
     if (!username) return;
+
+    const btn = $('#create-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
     try {
       const res = await fetch('/api/rooms', {
         method: 'POST',
@@ -101,6 +121,9 @@
       await enterRoom({ code: data.code, username, hostToken: data.hostToken });
     } catch (err) {
       showError(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '+ Create Room';
     }
   });
 
@@ -110,23 +133,42 @@
     const username = $('#join-username').value.trim();
     const code = $('#join-code').value.trim().toUpperCase();
     if (!username || !code) return;
-    await enterRoom({ code, username, hostToken: null });
+
+    const btn = $('#join-btn');
+    btn.disabled = true;
+    btn.textContent = 'Joining...';
+
+    try {
+      await enterRoom({ code, username, hostToken: null });
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Join Room';
+    }
   });
 
   async function enterRoom({ code, username, hostToken }) {
-    await syncClock();
-    socket.emit('join-room', { code, username, hostToken }, (resp) => {
-      if (resp?.error) { showError(resp.error); return; }
-      session = { code, username, hostToken, isHost: resp.isHost };
-      state = resp.state;
-      homeView.classList.add('hidden');
-      roomView.classList.remove('hidden');
-      $('#room-code-display').textContent = code;
-      renderAll();
+    syncClock();
+
+    return new Promise((resolve, reject) => {
+      socket.emit('join-room', { code, username, hostToken }, (resp) => {
+        if (resp?.error) {
+          reject(new Error(resp.error));
+          return;
+        }
+        session = { code, username, hostToken, isHost: resp.isHost };
+        state = resp.state;
+        homeView.classList.add('hidden');
+        roomView.classList.remove('hidden');
+        $('#room-code-display').textContent = code;
+        renderAll();
+        resolve();
+      });
     });
   }
 
-  // Copy Room Code & Share Room URL
+  // Copy Code & Share Links
   $('#copy-code-btn').addEventListener('click', () => {
     if (session.code) {
       navigator.clipboard.writeText(session.code);
@@ -142,7 +184,7 @@
   });
 
   // ---------------------------------------------------------------
-  // Socket Events
+  // Socket Handlers
   // ---------------------------------------------------------------
   socket.on('room-updated', (s) => { state = s; renderPeople(); renderQueue(); });
   socket.on('queue-updated', (s) => { state = s; renderQueue(); renderNowPlaying(); });
@@ -174,7 +216,7 @@
       wrap.appendChild(avatar);
     });
 
-    $('#host-badge').textContent = session.isHost ? 'Room Host' : 'Listener';
+    $('#host-badge').textContent = session.isHost ? 'ROOM HOST' : 'LISTENER';
   }
 
   function renderQueue() {
@@ -206,6 +248,7 @@
         removeBtn.className = 'queue-remove-btn';
         removeBtn.innerHTML = '×';
         removeBtn.title = 'Remove song';
+        removeBtn.type = 'button';
         removeBtn.addEventListener('click', () => socket.emit('remove-song', track.id));
         li.appendChild(removeBtn);
       }
@@ -267,7 +310,7 @@
   }
 
   // ---------------------------------------------------------------
-  // Playback & Time Syncing
+  // Playback & Syncing
   // ---------------------------------------------------------------
   function expectedPositionMs() {
     const pb = state.playback;
@@ -327,7 +370,7 @@
   }
 
   // ---------------------------------------------------------------
-  // Host Controls
+  // Host Playback Actions
   // ---------------------------------------------------------------
   $('#play-pause-btn').addEventListener('click', () => {
     if (!session.isHost) return;
@@ -348,9 +391,9 @@
   });
 
   // ---------------------------------------------------------------
-  // Upload Song
+  // Song Upload Handler
   // ---------------------------------------------------------------
-  $('#file-input').addEventListener('change', async (e) => {
+  fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const statusEl = $('#upload-status');
@@ -373,7 +416,7 @@
   });
 
   // ---------------------------------------------------------------
-  // Leave Room
+  // Leave Room Action
   // ---------------------------------------------------------------
   $('#leave-btn').addEventListener('click', () => {
     socket.emit('leave-room');
