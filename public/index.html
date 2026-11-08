@@ -2,67 +2,141 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Musiq</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Musiq — Same song, same second</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Hidden global file input -->
-  <input type="file" id="file-input" accept=".mp3,audio/mpeg" style="display:none;" />
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+
+  <!-- Global Upload Input -->
+  <input id="file-input" type="file" accept=".mp3,audio/mpeg" style="display:none;" />
 
   <!-- HOME VIEW -->
   <main id="home-view" class="view">
-    <header class="top-bar">
-      <h1>Musiq</h1>
-      <button class="theme-toggle-btn" type="button">🌓 Mode</button>
-    </header>
+    <div class="home-container">
+      <header class="brand-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none">
+            <path d="M6 22V18C6 10.268 12.268 4 20 4C27.732 4 34 10.268 34 18V22" stroke="url(#logo-grad)" stroke-width="3.5" stroke-linecap="round"/>
+            <rect x="4" y="18" width="6" height="14" rx="3" fill="url(#logo-grad)"/>
+            <rect x="30" y="18" width="6" height="14" rx="3" fill="url(#logo-grad)"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="4" y1="4" x2="34" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#A855F7"/><stop offset="1" stop-color="#EC4899"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-text">Musiq</span>
+        </div>
 
-    <div class="card-container">
-      <form id="create-form" class="card">
-        <h2>Host a Room</h2>
-        <input id="create-username" placeholder="Your name" required />
-        <button type="submit" class="btn btn-primary">Create Room</button>
-      </form>
+        <button class="theme-toggle-btn" aria-label="Toggle Theme" type="button">
+          <span class="theme-icon">🌓</span>
+        </button>
+      </header>
 
-      <form id="join-form" class="card">
-        <h2>Join a Room</h2>
-        <input id="join-username" placeholder="Your name" required />
-        <input id="join-code" placeholder="Room Code (5 letters)" maxlength="5" required />
-        <button type="submit" class="btn btn-secondary">Join Room</button>
-      </form>
+      <section class="hero-section">
+        <h1 class="hero-title">Same song,<br/><span class="gradient-text">same second. ♫</span></h1>
+        <p class="hero-sub">Listen together in real time — no accounts, no downloads.</p>
+      </section>
+
+      <div class="cards-grid">
+        <div class="card glass-card">
+          <h2>Host a Room</h2>
+          <form id="create-form">
+            <input id="create-username" maxlength="24" placeholder="Your name" required autocomplete="off" />
+            <button type="submit" id="create-btn" class="btn btn-gradient btn-full">+ Create Room</button>
+          </form>
+        </div>
+
+        <div class="card glass-card">
+          <h2>Join a Room</h2>
+          <form id="join-form">
+            <input id="join-username" maxlength="24" placeholder="Your name" required autocomplete="off" />
+            <input id="join-code" maxlength="5" placeholder="Room code (e.g. ABCDE)" required autocomplete="off" class="code-input" autocapitalize="characters" />
+            <button type="submit" id="join-btn" class="btn btn-solid-pink btn-full">Join Room</button>
+          </form>
+        </div>
+      </div>
+
+      <p id="home-error" class="error-toast" role="alert"></p>
     </div>
-    <p id="home-error" class="error-msg"></p>
   </main>
 
   <!-- ROOM VIEW -->
   <main id="room-view" class="view hidden">
-    <header class="top-bar">
-      <button id="leave-btn" type="button">← Leave</button>
-      <div class="room-info">Room: <strong id="room-code-display">-----</strong></div>
-      <button class="theme-toggle-btn" type="button">🌓 Mode</button>
+    <header class="room-nav-bar">
+      <button id="leave-btn" class="nav-back-btn" type="button">← Back</button>
+      <div class="room-badge">Room: <strong id="room-code-display">-----</strong></div>
+      <button class="theme-toggle-btn" aria-label="Toggle Theme" type="button">
+        <span class="theme-icon">🌓</span>
+      </button>
     </header>
 
-    <div class="workspace">
-      <section class="player-box">
-        <h2 id="track-title">Nothing playing</h2>
-        <p id="track-subtitle"></p>
+    <div class="room-workspace">
+      <!-- Player Panel Left -->
+      <section class="player-section glass-card">
+        <span id="host-badge" class="host-pill-tag">ROOM HOST</span>
 
-        <div class="controls">
-          <button id="play-pause-btn" type="button">Play / Pause</button>
-          <button id="upload-btn" type="button" class="btn btn-primary">+ Add Song</button>
+        <div id="now-playing-empty" class="empty-player-state">
+          <h3>Nothing is playing right now</h3>
+          <p>Add a song to the queue to start listening together.</p>
+          <button type="button" class="btn btn-gradient trigger-upload-btn" style="margin-top:16px;">
+            + Add Music
+          </button>
         </div>
-        <p id="upload-status"></p>
+
+        <div id="now-playing-content" class="hidden">
+          <div class="track-hero">
+            <div class="track-details">
+              <h2 id="track-title">Track Name</h2>
+              <p id="track-added-by" class="track-subtitle">added by Someone</p>
+            </div>
+          </div>
+
+          <div class="progress-container">
+            <div class="progress-bar-bg" id="progress-track">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+            <div class="time-stamps">
+              <span id="time-current">0:00</span>
+              <span id="time-total">0:00</span>
+            </div>
+          </div>
+
+          <div id="host-controls" class="playback-controls hidden">
+            <button id="play-pause-btn" class="ctrl-btn main-play" type="button">Play / Pause</button>
+            <button id="skip-btn" class="ctrl-btn secondary" type="button">Skip ⏭</button>
+          </div>
+
+          <div class="action-bar-bottom">
+            <button type="button" class="btn btn-outline-pink btn-sm trigger-upload-btn">
+              + Add to Queue
+            </button>
+          </div>
+          <p id="upload-status" class="upload-status-text"></p>
+        </div>
       </section>
 
-      <section class="queue-box">
-        <h3>Queue</h3>
-        <ul id="queue-list"></ul>
+      <!-- Queue Panel Right -->
+      <section class="queue-section glass-card">
+        <div class="queue-header">
+          <h3>Queue</h3>
+          <button type="button" class="btn btn-solid-pink btn-sm trigger-upload-btn">
+            + Add Song
+          </button>
+        </div>
+        <ul id="queue-list" class="queue-items-list"></ul>
       </section>
     </div>
   </main>
 
-  <audio id="audio-el" preload="auto"></audio>
+  <audio id="audio-el" preload="auto" playsinline></audio>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
