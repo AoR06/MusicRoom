@@ -1,8 +1,7 @@
 /* ---------------------------------------------------------------
-   Musiq Themed CSS (Dark & Light)
+   Musiq Theme Stylesheet (Dark / Light)
 ----------------------------------------------------------------*/
 
-/* Dark Theme Variables */
 html[data-theme="dark"] {
   --bg-dark: #0b0716;
   --bg-nav: rgba(11, 7, 22, 0.85);
@@ -26,12 +25,11 @@ html[data-theme="dark"] {
   --btn-ctrl-bg: rgba(255, 255, 255, 0.05);
 }
 
-/* Light Theme Variables */
 html[data-theme="light"] {
   --bg-dark: #f8fafc;
   --bg-nav: rgba(255, 255, 255, 0.85);
-  --bg-card: rgba(255, 255, 255, 0.75);
-  --bg-input: rgba(241, 245, 249, 0.8);
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-input: rgba(241, 245, 249, 0.9);
   --border-glass: rgba(168, 85, 247, 0.25);
   --border-focus: rgba(168, 85, 247, 0.6);
   
@@ -43,8 +41,8 @@ html[data-theme="light"] {
   --glow-top-bg: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
   --glow-bottom-bg: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
 
-  --item-bg: rgba(241, 245, 249, 0.8);
-  --item-border: rgba(226, 232, 240, 0.8);
+  --item-bg: rgba(241, 245, 249, 0.9);
+  --item-border: rgba(226, 232, 240, 0.9);
   --item-active-bg: rgba(168, 85, 247, 0.15);
   --artwork-bg: #f1f5f9;
   --btn-ctrl-bg: rgba(241, 245, 249, 0.9);
@@ -76,7 +74,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   position: relative;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Background Ambient Lighting */
@@ -123,6 +121,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 .theme-toggle-btn:hover {
@@ -280,7 +279,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
 .btn {
   border: none;
   border-radius: var(--radius-md);
-  padding: 13px 20px;
+  padding: 12px 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -296,7 +295,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
   color: #fff;
   box-shadow: 0 4px 20px rgba(147, 51, 234, 0.35);
 }
-.btn-gradient:hover {
+.btn-gradient:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 24px rgba(147, 51, 234, 0.5);
 }
@@ -305,7 +304,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
   border: 1px solid rgba(236, 72, 153, 0.4);
   color: #ec4899;
 }
-.btn-solid-pink:hover {
+.btn-solid-pink:hover:not(:disabled) {
   background: rgba(236, 72, 153, 0.25);
 }
 .btn-outline-pink {
@@ -321,6 +320,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
 }
 .btn-ghost-purple:hover { background: rgba(168, 85, 247, 0.2); }
 .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: var(--radius-sm); }
+.btn:disabled { opacity: 0.6; cursor: wait; }
 
 .error-toast {
   color: #f43f5e;
@@ -379,7 +379,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
 }
 .icon-btn-inline:hover { color: var(--text-main); }
 
-.nav-right { display: flex; align-items: center; gap: 16px; }
+.nav-right { display: flex; align-items: center; gap: 14px; }
 .sync-indicator {
   display: flex;
   align-items: center;
@@ -448,7 +448,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
 
 .empty-player-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 50px 20px;
   color: var(--text-muted);
 }
 .disc-placeholder {
@@ -611,6 +611,11 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
   justify-content: space-between;
   margin-bottom: 20px;
 }
+.queue-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .queue-header h3 { font-size: 18px; font-weight: 700; color: var(--text-main); }
 .count-tag {
   font-size: 12px;
@@ -669,7 +674,7 @@ form { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
   line-height: 1.5;
 }
 
-/* Mobile Play Overlay Button */
+/* Mobile Play Button */
 .enable-audio-float-btn {
   position: fixed;
   bottom: 24px;
