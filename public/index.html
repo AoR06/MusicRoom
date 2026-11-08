@@ -1,285 +1,238 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0F0A1E" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Musiq — Same song, same second</title>
-<script>
-  /* Apply the saved (or system) theme before first paint so there's no flash */
-  try {
-    var t = localStorage.getItem('musiq-theme') ||
-      (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    document.documentElement.setAttribute('data-theme', t);
-  } catch (e) {}
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0716" />
+  <title>Musiq — Same song, same second</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- shared gradients -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F58BB8"/>
-      <stop offset="1" stop-color="#8B6BF5"/>
-    </linearGradient>
-    <linearGradient id="hpDark" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8A64D6"/>
-      <stop offset="1" stop-color="#3A2470"/>
-    </linearGradient>
-    <linearGradient id="waveA" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#8B6BF5" stop-opacity="0"/>
-      <stop offset=".35" stop-color="#8B6BF5"/>
-      <stop offset=".75" stop-color="#F58BB8"/>
-      <stop offset="1" stop-color="#F58BB8" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-</svg>
+  <!-- Ambient Glow Backgrounds -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
 
-<div class="app">
-
-  <!-- ===================== HOME ===================== -->
+  <!-- ===================== HOME VIEW ===================== -->
   <main id="home-view" class="view">
-
-    <div class="home-bg" aria-hidden="true"><div class="vinyl"></div></div>
-
-    <header class="home-top">
-      <div class="brand brand-left">
-        <svg class="brand-mark" viewBox="0 0 34 28" aria-hidden="true">
-          <path d="M3 18 V14 C3 7 9 2 17 2 C25 2 31 7 31 14 V18" fill="none" stroke="url(#brandGrad)" stroke-width="2.6" stroke-linecap="round"/>
-          <rect x="1" y="14" width="6" height="12" rx="3" fill="url(#brandGrad)"/>
-          <rect x="27" y="14" width="6" height="12" rx="3" fill="url(#brandGrad)"/>
-          <g stroke="url(#brandGrad)" stroke-width="2" stroke-linecap="round"><path d="M11 15v6M14.5 11v14M18 8v20M21.5 12v12M25 16v4"/></g>
-        </svg>
-        <span>Musiq</span>
-      </div>
-      <button class="icon-btn js-theme-btn" aria-label="Switch between light and dark theme">
-        <svg class="ic ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="ic ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
-    </header>
-
-    <section class="home-hero">
-      <h1 class="hero-title">Same song,<br>same <em>second.</em> <span class="note">♫</span></h1>
-      <p class="hero-sub">Create a room, share the code, and listen together in real time — no accounts, no downloads.</p>
-      <svg class="hero-wave" viewBox="0 0 300 50" aria-hidden="true">
-        <path d="M0 32 C30 32 45 8 80 14 S120 42 150 30 S195 6 230 22 S280 34 300 30" fill="none" stroke="url(#waveA)" stroke-width="2.2" stroke-linecap="round"/>
-        <path d="M0 30 C35 38 55 12 90 20 S130 40 160 26 S205 10 240 26 S285 32 300 28" fill="none" stroke="url(#waveA)" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
-      </svg>
-    </section>
-
-    <!-- Host card -->
-    <section class="home-card" id="host-card">
-      <svg class="card-art art-hp" viewBox="0 0 140 140" aria-hidden="true">
-        <path d="M34 104 C24 52 52 16 88 20 C118 24 132 54 124 94" fill="none" stroke="url(#hpDark)" stroke-width="9" stroke-linecap="round"/>
-        <ellipse cx="40" cy="110" rx="19" ry="27" fill="url(#hpDark)" transform="rotate(14 40 110)"/>
-        <ellipse cx="40" cy="110" rx="10" ry="16" fill="#241553" transform="rotate(14 40 110)"/>
-        <ellipse cx="118" cy="104" rx="17" ry="25" fill="url(#hpDark)" transform="rotate(14 118 104)"/>
-      </svg>
-      <div class="card-head">
-        <div class="tile"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M19 8v6M16 11h6"/></svg></div>
-        <div class="card-text">
-          <h2>Host a Room</h2>
-          <p>Control the queue, play songs, and let friends add to it.</p>
+    <div class="home-container">
+      <header class="brand-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none">
+            <path d="M6 22V18C6 10.268 12.268 4 20 4C27.732 4 34 10.268 34 18V22" stroke="url(#logo-grad)" stroke-width="3.5" stroke-linecap="round"/>
+            <rect x="4" y="18" width="6" height="14" rx="3" fill="url(#logo-grad)"/>
+            <rect x="30" y="18" width="6" height="14" rx="3" fill="url(#logo-grad)"/>
+            <rect x="14" y="14" width="2.5" height="12" rx="1.25" fill="url(#logo-grad)"/>
+            <rect x="18.75" y="10" width="2.5" height="20" rx="1.25" fill="url(#logo-grad)"/>
+            <rect x="23.5" y="16" width="2.5" height="8" rx="1.25" fill="url(#logo-grad)"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="4" y1="4" x2="34" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#A855F7"/>
+                <stop offset="0.5" stop-color="#EC4899"/>
+                <stop offset="1" stop-color="#F43F5E"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-text">Musiq</span>
         </div>
-      </div>
-      <form id="create-form" autocomplete="off">
-        <label class="field">
-          <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-          <input id="create-username" maxlength="24" placeholder="Your name" required />
-        </label>
-        <button type="submit" class="btn btn-primary btn-arrow">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-          Create Room
-          <svg class="ic trail" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
-      </form>
-      <p id="host-error" class="error" role="alert"></p>
-    </section>
+      </header>
 
-    <div class="or-divider" aria-hidden="true"><span>or</span></div>
-
-    <!-- Join card -->
-    <section class="home-card" id="join-card">
-      <div class="eq-art" aria-hidden="true">
-        <i style="--h:35%"></i><i style="--h:60%"></i><i style="--h:100%"></i><i style="--h:75%"></i><i style="--h:45%"></i>
-      </div>
-      <div class="card-head">
-        <div class="tile tile-alt"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2.5.6 4 2.2 4 5"/></svg></div>
-        <div class="card-text">
-          <h2>Join a Room</h2>
-          <p>Get the room code from whoever's hosting and jump in instantly.</p>
+      <section class="hero-section">
+        <h1 class="hero-title">Same song,<br/><span class="gradient-text">same second. ♫</span></h1>
+        <p class="hero-sub">Create a room, share the code, and listen together in real time — no accounts, no downloads.</p>
+        
+        <div class="feature-badges">
+          <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Real-Time Sync</span>
+          <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Invite Friends</span>
+          <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> Shared Queue</span>
         </div>
-      </div>
-      <form id="join-form" autocomplete="off">
-        <label class="field">
-          <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-          <input id="join-username" maxlength="24" placeholder="Your name" required />
-        </label>
-        <label class="field">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 3L8 21M16 3l-2 18"/></svg>
-          <input id="join-code" maxlength="5" placeholder="Room code (e.g. ABCDE)" required class="code-input" autocapitalize="characters" spellcheck="false" />
-        </label>
-        <button type="submit" class="btn btn-outline btn-arrow">
-          Join Room
-          <svg class="ic trail" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
-      </form>
-      <p id="join-error" class="error" role="alert"></p>
-    </section>
+      </section>
 
-    <footer class="home-scene" aria-hidden="true">
-      <svg class="scene" viewBox="0 0 430 160" preserveAspectRatio="xMidYMax slice">
-        <defs>
-          <radialGradient id="lampGlow"><stop offset="0" stop-color="#FFB45A" stop-opacity=".65"/><stop offset="1" stop-color="#FFB45A" stop-opacity="0"/></radialGradient>
-          <linearGradient id="lampBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD08A"/><stop offset="1" stop-color="#E5762F"/></linearGradient>
-        </defs>
-        <rect class="s-sky" x="0" y="0" width="430" height="160"/>
-        <g class="s-bld">
-          <rect x="236" y="98" width="30" height="62"/><rect x="270" y="86" width="26" height="74"/>
-          <rect x="300" y="102" width="34" height="58"/><rect x="338" y="80" width="28" height="80"/>
-          <rect x="370" y="94" width="60" height="66"/>
-        </g>
-        <g class="s-win">
-          <rect x="244" y="108" width="4" height="5"/><rect x="254" y="120" width="4" height="5"/>
-          <rect x="278" y="96" width="4" height="5"/><rect x="286" y="112" width="4" height="5"/>
-          <rect x="310" y="114" width="4" height="5"/><rect x="322" y="108" width="4" height="5"/>
-          <rect x="346" y="92" width="4" height="5"/><rect x="354" y="106" width="4" height="5"/><rect x="346" y="122" width="4" height="5"/>
-          <rect x="384" y="104" width="5" height="6"/><rect x="402" y="116" width="5" height="6"/><rect x="416" y="102" width="5" height="6"/>
-        </g>
-        <rect class="s-desk" x="0" y="134" width="430" height="26"/>
-        <circle cx="100" cy="114" r="48" fill="url(#lampGlow)"/>
-        <rect x="86" y="102" width="28" height="34" rx="9" fill="url(#lampBody)"/>
-        <rect class="s-book" x="0" y="122" width="56" height="12"/><rect class="s-book" x="4" y="112" width="46" height="10"/>
-        <g class="s-plant">
-          <path d="M8 124 C6 94 18 74 40 62 C34 82 30 104 28 124Z"/>
-          <ellipse cx="16" cy="84" rx="13" ry="7" transform="rotate(-40 16 84)"/>
-          <ellipse cx="38" cy="72" rx="13" ry="6" transform="rotate(-20 38 72)"/>
-          <ellipse cx="12" cy="104" rx="12" ry="6" transform="rotate(30 12 104)"/>
-          <ellipse cx="34" cy="98" rx="12" ry="6" transform="rotate(-25 34 98)"/>
-        </g>
-      </svg>
-    </footer>
-  </main>
-
-  <!-- ===================== ROOM ===================== -->
-  <main id="room-view" class="view hidden">
-    <header class="room-top">
-      <button id="leave-btn" class="icon-btn left" aria-label="Leave room"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-      <div class="room-title">
-        <button id="copy-code-btn" class="code-chip" aria-label="Copy room code">
-          Room: <span id="room-code-display">-----</span>
-          <svg class="ic" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
-        </button>
-        <div class="listening"><span class="live-dot"></span><span id="listening-count">1 listening now</span></div>
-      </div>
-      <div class="room-actions">
-        <button class="icon-btn js-theme-btn" aria-label="Switch between light and dark theme">
-          <svg class="ic ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-          <svg class="ic ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        </button>
-        <button class="icon-btn accent js-open-add" aria-label="Add song"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      </div>
-    </header>
-
-    <div class="tabs" role="tablist">
-      <button class="tab active" data-tab="playing" role="tab">Now Playing</button>
-      <button class="tab" data-tab="queue" role="tab">Queue</button>
-    </div>
-
-    <!-- Now playing -->
-    <section id="tab-playing" class="tab-pane">
-      <span id="host-badge" class="host-badge"></span>
-
-      <div class="blob-wrap">
-        <div class="blob">
-          <svg class="ic ic-xl" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-        </div>
-      </div>
-
-      <div id="now-playing-empty" class="empty-state">Nothing's playing yet.<br>Tap + to add a song and start the room.</div>
-
-      <div id="now-playing-content" class="hidden">
-        <p class="np-label">Now Playing</p>
-        <h3 id="track-title">-</h3>
-        <p id="track-added-by" class="track-meta"></p>
-
-        <div class="progress-wrap">
-          <div class="progress-track" id="progress-track">
-            <div class="progress-fill" id="progress-fill"></div>
-            <div class="progress-knob" id="progress-knob"></div>
+      <div class="cards-grid">
+        <!-- Host Card -->
+        <div class="card glass-card">
+          <div class="card-header">
+            <div class="card-icon-wrap purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <h2>Host a Room</h2>
+              <p class="card-sub">Control the queue, play songs, and let friends add to it.</p>
+            </div>
           </div>
-          <div class="time-row"><span id="time-current">0:00</span><span id="time-total">0:00</span></div>
+          <form id="create-form">
+            <div class="input-group">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input id="create-username" maxlength="24" placeholder="Your name" required autocomplete="off" />
+            </div>
+            <button type="submit" class="btn btn-gradient btn-full">+ Create Room</button>
+          </form>
         </div>
 
-        <div id="host-controls" class="transport hidden">
-          <button id="play-pause-btn" class="play-btn" aria-label="Play or pause">
-            <svg id="icon-play" class="ic ic-lg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/></svg>
-            <svg id="icon-pause" class="ic ic-lg hidden" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" stroke="none"/></svg>
-          </button>
-          <button id="skip-btn" class="skip-btn" aria-label="Skip to next song">
-            <svg class="ic ic-lg" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7z" fill="currentColor" stroke="none"/><path d="M18 5v14"/></svg>
-          </button>
+        <!-- Join Card -->
+        <div class="card glass-card">
+          <div class="card-header">
+            <div class="card-icon-wrap pink">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            </div>
+            <div>
+              <h2>Join a Room</h2>
+              <p class="card-sub">Get the room code from whoever's hosting and jump in.</p>
+            </div>
+          </div>
+          <form id="join-form">
+            <div class="input-group">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input id="join-username" maxlength="24" placeholder="Your name" required autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <span class="input-icon">#</span>
+              <input id="join-code" maxlength="5" placeholder="Room code (e.g. ABCDE)" required autocomplete="off" class="code-input" autocapitalize="characters" spellcheck="false" />
+            </div>
+            <button type="submit" class="btn btn-solid-pink btn-full">Join Room</button>
+          </form>
         </div>
-        <p id="listener-note" class="listener-note">The host controls playback.</p>
       </div>
 
-      <div class="listeners">
-        <svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2.5.6 4 2.2 4 5"/></svg>
-        <span class="listeners-label">Listeners</span>
-        <div id="avatars" class="avatars"></div>
-        <button id="invite-btn" class="avatar add-avatar" aria-label="Invite friends"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      </div>
-    </section>
-
-    <!-- Queue -->
-    <section id="tab-queue" class="tab-pane hidden">
-      <div class="pane-head">
-        <h2>Queue (<span id="queue-count">0</span>)</h2>
-        <button class="icon-btn accent js-open-add" aria-label="Add song"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      </div>
-      <ul id="queue-list" class="queue-list"></ul>
-      <p id="queue-empty" class="empty-state">No songs yet — add one to get the room going.</p>
-    </section>
+      <p id="home-error" class="error-toast" role="alert"></p>
+    </div>
   </main>
 
-  <!-- ===================== ADD SONG ===================== -->
-  <div id="add-view" class="overlay hidden">
-    <div class="overlay-inner">
-      <div class="screen-top">
-        <button id="add-close-btn" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-        <h2 class="screen-title">Add Song</h2>
-        <span class="icon-spacer"></span>
+  <!-- ===================== ROOM VIEW ===================== -->
+  <main id="room-view" class="view hidden">
+    <!-- Top Bar Navigation -->
+    <header class="room-nav-bar">
+      <div class="nav-left">
+        <button id="leave-btn" class="nav-back-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back
+        </button>
       </div>
 
-      <label class="row-btn">
-        <svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
-        <span>Upload from Device</span>
-        <svg class="ic chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-        <input id="file-input" type="file" accept=".mp3,audio/mpeg" hidden />
-      </label>
-      <p id="upload-status" class="upload-status" role="status"></p>
-      <p class="hint">MP3 files only, up to 40&nbsp;MB. Everyone in the room can add songs.</p>
-
-      <div class="equalizer" aria-hidden="true">
-        <i style="--h:20%"></i><i style="--h:35%"></i><i style="--h:55%"></i><i style="--h:40%"></i><i style="--h:75%"></i><i style="--h:100%"></i><i style="--h:80%"></i><i style="--h:60%"></i><i style="--h:90%"></i><i style="--h:45%"></i><i style="--h:30%"></i><i style="--h:50%"></i><i style="--h:25%"></i><i style="--h:15%"></i>
+      <div class="nav-center">
+        <div class="room-badge">
+          <span>Room:</span>
+          <strong id="room-code-display">-----</strong>
+          <button id="copy-code-btn" class="icon-btn-inline" title="Copy Room Code">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
       </div>
+
+      <div class="nav-right">
+        <div class="sync-indicator">
+          <span class="dot-green"></span> In Sync ✓
+        </div>
+        <div class="listeners-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span id="listener-count">1 listening</span>
+        </div>
+        <div id="people-pills" class="people-avatars"></div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="room-workspace">
+      <!-- Player Panel Left -->
+      <section class="player-section glass-card">
+        <span id="host-badge" class="host-pill-tag">Host</span>
+
+        <div id="now-playing-empty" class="empty-player-state">
+          <div class="disc-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <h3>Nothing is playing right now</h3>
+          <p>Add a song to the queue to start listening together.</p>
+        </div>
+
+        <div id="now-playing-content" class="hidden">
+          <div class="track-hero">
+            <div class="track-artwork-wrap">
+              <div class="artwork-inner">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+            </div>
+            
+            <div class="track-details">
+              <h2 id="track-title">Track Name</h2>
+              <p id="track-added-by" class="track-subtitle">added by Someone</p>
+            </div>
+          </div>
+
+          <!-- Animated Sound Wave Visualizer -->
+          <div id="visualizer-bars" class="visualizer">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+
+          <!-- Progress Slider -->
+          <div class="progress-container">
+            <div class="progress-bar-bg" id="progress-track">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+            <div class="time-stamps">
+              <span id="time-current">0:00</span>
+              <span id="time-total">0:00</span>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div id="host-controls" class="playback-controls hidden">
+            <button class="ctrl-btn secondary" disabled title="Shuffle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+            <button class="ctrl-btn secondary" disabled title="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+            
+            <button id="play-pause-btn" class="ctrl-btn main-play" aria-label="Play or Pause">
+              <svg id="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+
+            <button id="skip-btn" class="ctrl-btn secondary" aria-label="Skip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+            <button class="ctrl-btn secondary" disabled title="Repeat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+          </div>
+
+          <p id="listener-note" class="listener-info-note">Only the room host can control playback position and skip songs.</p>
+
+          <div class="action-bar-bottom">
+            <label class="btn btn-outline-pink btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add to Queue
+              <input id="file-input" type="file" accept=".mp3,audio/mpeg" hidden />
+            </label>
+            <button id="share-room-btn" class="btn btn-ghost-purple btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share Room
+            </button>
+          </div>
+          <p id="upload-status" class="upload-status-text"></p>
+        </div>
+      </section>
+
+      <!-- Queue Section Right -->
+      <section class="queue-section glass-card">
+        <div class="queue-header">
+          <h3>Queue</h3>
+          <span id="queue-count-badge" class="count-tag">0 songs</span>
+        </div>
+
+        <ul id="queue-list" class="queue-items-list"></ul>
+        <p id="queue-empty" class="queue-empty-msg">No upcoming tracks in queue.<br/>Click <strong>+ Add to Queue</strong> to upload an MP3!</p>
+      </section>
     </div>
-  </div>
+  </main>
 
-</div>
+  <!-- Audio Element -->
+  <audio id="audio-el" preload="auto" playsinline></audio>
 
-<div id="toast" class="toast" role="status"></div>
-<button id="enable-audio-btn" class="enable-audio-btn hidden">▶ Tap to start listening</button>
-<audio id="audio-el" preload="auto" playsinline></audio>
+  <!-- Audio Tap Banner for Mobile Safari/Chrome -->
+  <button id="enable-audio-btn" class="enable-audio-float-btn hidden">
+    ▶ Tap to Start Listening in Sync
+  </button>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="client.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
 </body>
 </html>
