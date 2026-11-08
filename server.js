@@ -13,30 +13,19 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const UPLOAD_ROOT = path.join(__dirname, 'uploads');
-const HOST_GRACE_MS = 30 * 1000;        // time a host has to reconnect before losing host status / room closing
-const INACTIVITY_LIMIT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const HOST_GRACE_MS = 30 * 1000;
+const INACTIVITY_LIMIT_MS = 2 * 60 * 60 * 1000;
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 
-if (!fs.existsSync(UPLOAD_ROOT)) fs.mkdirSync(UPLOAD_ROOT);
+if (!fs.existsSync(UPLOAD_ROOT)) fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ---------------------------------------------------------------------------
-// In-memory room store
-// ---------------------------------------------------------------------------
-// rooms[code] = {
-//   code, hostToken, hostSocketId, hostDisconnectedAt,
-//   users: Map(socketId -> { username, isHost }),
-//   queue: [{ id, originalName, addedBy, sizeBytes }],
-//   currentIndex: -1,
-//   playback: { isPlaying: false, startedAt: null, pausedAtPositionMs: 0 },
-//   createdAt, lastActivity
-// }
 const rooms = new Map();
 
 function makeRoomCode() {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   let code;
   do {
     code = Array.from({ length: 5 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
@@ -79,10 +68,9 @@ async function deleteRoom(code, reason) {
   const dir = path.join(UPLOAD_ROOT, code);
   try {
     await fsp.rm(dir, { recursive: true, force: true });
-  } catch (_) { /* ignore */ }
+  } catch (_) {}
 }
 
-// Periodic sweep for abandoned / inactive rooms
 setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms.entries()) {
@@ -94,19 +82,7 @@ setInterval(() => {
   }
 }, SWEEP_INTERVAL_MS);
 
-// Also check host-grace expiry more frequently so rooms close promptly after host leaves
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, room] of rooms.entries()) {
-    if (room.hostDisconnectedAt && (now - room.hostDisconnectedAt > HOST_GRACE_MS)) {
-      deleteRoom(code, 'host-left');
-    }
-  }
-}, 5000);
-
-// ---------------------------------------------------------------------------
-// REST: create room, upload track, stream track
-// ---------------------------------------------------------------------------
+// REST API
 app.post('/api/rooms', (req, res) => {
   const username = (req.body?.username || '').trim().slice(0, 24);
   if (!username) return res.status(400).json({ error: 'Username required.' });
@@ -136,51 +112,57 @@ app.get('/api/rooms/:code', (req, res) => {
   res.json({ code: room.code, memberCount: room.users.size });
 });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const code = req.params.code.toUpperCase();
-    const room = rooms.get(code);
-    if (!room) return cb(new Error('Room not found'));
-    cb(null, path.join(UPLOAD_ROOT, code));
-  },
-  filename: (req, file, cb) => cb(null, `${uuidv4()}.mp3`),
-});
+// Robust Multer Storage Setup using Memory Buffers to prevent pathing issues
 const upload = multer({
-  storage,
-  limits: { fileSize: 40 * 1024 * 1024 }, // 40MB per track
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 40 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const okType = file.mimetype === 'audio/mpeg' || file.originalname.toLowerCase().endsWith('.mp3');
+    const okType = file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/mp3' || file.originalname.toLowerCase().endsWith('.mp3');
     cb(okType ? null : new Error('Only .mp3 files are allowed'), okType);
   },
 });
 
-app.post('/api/rooms/:code/upload', (req, res) => {
+app.post('/api/rooms/:code/upload', upload.single('file'), async (req, res) => {
   const code = req.params.code.toUpperCase();
   const room = rooms.get(code);
   if (!room) return res.status(404).json({ error: 'Room not found.' });
+  if (!req.file) return res.status(400).json({ error: 'No audio file uploaded.' });
 
-  upload.single('file')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  try {
+    const trackId = uuidv4();
+    const storedFilename = `${trackId}.mp3`;
+    const roomDir = path.join(UPLOAD_ROOT, code);
+
+    if (!fs.existsSync(roomDir)) {
+      await fsp.mkdir(roomDir, { recursive: true });
+    }
+
+    // Write file directly to disk
+    await fsp.writeFile(path.join(roomDir, storedFilename), req.file.buffer);
 
     const username = (req.body?.username || 'Someone').trim().slice(0, 24);
     const track = {
-      id: path.basename(req.file.filename, '.mp3'),
-      originalName: (req.body?.displayName || req.file.originalname).slice(0, 80),
+      id: trackId,
+      originalName: (req.body?.displayName || req.file.originalname).replace(/\.mp3$/i, '').slice(0, 80),
       addedBy: username,
-      storedFilename: req.file.filename,
+      storedFilename,
     };
+
     room.queue.push(track);
     touch(room);
 
     const wasEmpty = room.currentIndex === -1;
     if (wasEmpty) {
-      startTrackAt(room, room.queue.length - 1);
+      startTrackAt(room, 0);
     }
 
     io.to(code).emit('queue-updated', publicRoomState(room));
+    io.to(code).emit('playback-update', publicRoomState(room));
+
     res.json({ ok: true, track: { id: track.id, name: track.originalName } });
-  });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save track: ' + err.message });
+  }
 });
 
 app.get('/api/rooms/:code/tracks/:trackId', (req, res) => {
@@ -191,12 +173,11 @@ app.get('/api/rooms/:code/tracks/:trackId', (req, res) => {
   if (!track) return res.status(404).end();
   const filePath = path.join(UPLOAD_ROOT, code, track.storedFilename);
   res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Content-Type', 'audio/mpeg');
   res.sendFile(filePath, (err) => { if (err && !res.headersSent) res.status(404).end(); });
 });
 
-// ---------------------------------------------------------------------------
-// Socket.io: room membership, host-only playback control, clock sync
-// ---------------------------------------------------------------------------
+// Socket.io Setup
 function isHost(room, socketId) {
   return room.hostSocketId === socketId;
 }
@@ -226,7 +207,7 @@ io.on('connection', (socket) => {
     room.users.set(socket.id, { username, isHost: claimsHost || isHost(room, socket.id) });
     touch(room);
 
-    cb?.({ ok: true, isHost: claimsHost, state: publicRoomState(room) });
+    cb?.({ ok: true, isHost: claimsHost || isHost(room, socket.id), state: publicRoomState(room) });
     socket.to(code).emit('room-updated', publicRoomState(room));
   });
 
@@ -286,7 +267,6 @@ io.on('connection', (socket) => {
   socket.on('track-ended', () => {
     const room = rooms.get(joinedCode);
     if (!room) return;
-    // Any client can report end-of-track (they're all listening), but only advance once per track.
     if (room.currentIndex === -1) return;
     advance(room, room.currentIndex + 1);
   });
@@ -310,23 +290,10 @@ io.on('connection', (socket) => {
     }
     touch(room);
     io.to(room.code).emit('queue-updated', publicRoomState(room));
-  });
-
-  socket.on('reorder-queue', (orderedIds) => {
-    const room = rooms.get(joinedCode);
-    if (!requireHost(room)) return;
-    const currentId = currentTrack(room)?.id;
-    const byId = new Map(room.queue.map(t => [t.id, t]));
-    const reordered = orderedIds.map(id => byId.get(id)).filter(Boolean);
-    if (reordered.length !== room.queue.length) return; // malformed, ignore
-    room.queue = reordered;
-    room.currentIndex = currentId ? room.queue.findIndex(t => t.id === currentId) : -1;
-    touch(room);
-    io.to(room.code).emit('queue-updated', publicRoomState(room));
+    io.to(room.code).emit('playback-update', publicRoomState(room));
   });
 
   socket.on('leave-room', () => handleLeave());
-
   socket.on('disconnect', () => handleLeave());
 
   function handleLeave() {
@@ -335,11 +302,10 @@ io.on('connection', (socket) => {
     if (!room) return;
     room.users.delete(socket.id);
     if (isHost(room, socket.id)) {
-      room.hostDisconnectedAt = Date.now(); // grace period for reconnect before auto-close
+      room.hostDisconnectedAt = Date.now();
     }
     touch(room);
     if (room.users.size === 0) {
-      // Nobody left at all — no need to wait for the sweep, but still respect host grace period
       if (!room.hostDisconnectedAt) deleteRoom(room.code, 'empty');
     } else {
       io.to(joinedCode).emit('room-updated', publicRoomState(room));
@@ -349,5 +315,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Music room server listening on http://localhost:${PORT}`);
+  console.log(`Musiq server running on http://localhost:${PORT}`);
 });
