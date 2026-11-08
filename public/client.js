@@ -1,5 +1,6 @@
 (() => {
   const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
 
   const homeView = $('#home-view');
   const roomView = $('#room-view');
@@ -7,6 +8,37 @@
 
   const audioEl = $('#audio-el');
   const socket = io();
+
+  // ---------------------------------------------------------------
+  // Theme Switching (Dark / Light)
+  // ---------------------------------------------------------------
+  const currentTheme = localStorage.getItem('musiq-theme') || 'dark';
+  applyTheme(currentTheme);
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('musiq-theme', theme);
+
+    $$('.theme-toggle-btn').forEach(btn => {
+      const sun = btn.querySelector('.sun-icon');
+      const moon = btn.querySelector('.moon-icon');
+      if (theme === 'dark') {
+        sun?.classList.remove('hidden');
+        moon?.classList.add('hidden');
+      } else {
+        sun?.classList.add('hidden');
+        moon?.classList.remove('hidden');
+      }
+    });
+  }
+
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyTheme(isDark ? 'light' : 'dark');
+  }
+
+  $('#theme-toggle-home')?.addEventListener('click', toggleTheme);
+  $('#theme-toggle-room')?.addEventListener('click', toggleTheme);
 
   // ---------------------------------------------------------------
   // Clock Synchronization across server and clients
@@ -104,7 +136,6 @@
 
   $('#share-room-btn').addEventListener('click', () => {
     if (session.code) {
-      const url = `${window.location.origin}`;
       navigator.clipboard.writeText(`Join my room on Musiq! Room Code: ${session.code}`);
       alert(`Room invite info copied to clipboard! Share code ${session.code} with your friends.`);
     }
