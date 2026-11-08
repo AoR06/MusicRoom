@@ -16,6 +16,9 @@
   <div class="ambient-glow glow-top"></div>
   <div class="ambient-glow glow-bottom"></div>
 
+  <!-- Hidden File Input triggered by buttons -->
+  <input id="file-input" type="file" accept=".mp3,audio/mpeg" style="display:none;" />
+
   <!-- ===================== HOME VIEW ===================== -->
   <main id="home-view" class="view">
     <div class="home-container">
@@ -39,7 +42,7 @@
           <span class="logo-text">Musiq</span>
         </div>
 
-        <button id="theme-toggle-home" class="theme-toggle-btn" aria-label="Toggle Theme">
+        <button id="theme-toggle-home" class="theme-toggle-btn" aria-label="Toggle Theme" type="button">
           <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="moon-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -73,7 +76,7 @@
               <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
               <input id="create-username" maxlength="24" placeholder="Your name" required autocomplete="off" />
             </div>
-            <button type="submit" class="btn btn-gradient btn-full">+ Create Room</button>
+            <button type="submit" id="create-btn" class="btn btn-gradient btn-full">+ Create Room</button>
           </form>
         </div>
 
@@ -97,7 +100,7 @@
               <span class="input-icon">#</span>
               <input id="join-code" maxlength="5" placeholder="Room code (e.g. ABCDE)" required autocomplete="off" class="code-input" autocapitalize="characters" spellcheck="false" />
             </div>
-            <button type="submit" class="btn btn-solid-pink btn-full">Join Room</button>
+            <button type="submit" id="join-btn" class="btn btn-solid-pink btn-full">Join Room</button>
           </form>
         </div>
       </div>
@@ -111,7 +114,7 @@
     <!-- Top Bar Navigation -->
     <header class="room-nav-bar">
       <div class="nav-left">
-        <button id="leave-btn" class="nav-back-btn">
+        <button id="leave-btn" class="nav-back-btn" type="button">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           Back
         </button>
@@ -121,7 +124,7 @@
         <div class="room-badge">
           <span>Room:</span>
           <strong id="room-code-display">-----</strong>
-          <button id="copy-code-btn" class="icon-btn-inline" title="Copy Room Code">
+          <button id="copy-code-btn" class="icon-btn-inline" title="Copy Room Code" type="button">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
@@ -137,7 +140,7 @@
         </div>
         <div id="people-pills" class="people-avatars"></div>
 
-        <button id="theme-toggle-room" class="theme-toggle-btn" aria-label="Toggle Theme">
+        <button id="theme-toggle-room" class="theme-toggle-btn" aria-label="Toggle Theme" type="button">
           <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="moon-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -148,7 +151,7 @@
     <div class="room-workspace">
       <!-- Player Panel Left -->
       <section class="player-section glass-card">
-        <span id="host-badge" class="host-pill-tag">Host</span>
+        <span id="host-badge" class="host-pill-tag">ROOM HOST</span>
 
         <div id="now-playing-empty" class="empty-player-state">
           <div class="disc-placeholder">
@@ -156,6 +159,10 @@
           </div>
           <h3>Nothing is playing right now</h3>
           <p>Add a song to the queue to start listening together.</p>
+          <button type="button" class="btn btn-gradient trigger-upload-btn" style="margin-top: 18px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Music
+          </button>
         </div>
 
         <div id="now-playing-content" class="hidden">
@@ -192,27 +199,26 @@
 
           <!-- Controls -->
           <div id="host-controls" class="playback-controls hidden">
-            <button class="ctrl-btn secondary" disabled title="Shuffle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
-            <button class="ctrl-btn secondary" disabled title="Previous"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+            <button class="ctrl-btn secondary" disabled title="Shuffle" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+            <button class="ctrl-btn secondary" disabled title="Previous" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
             
-            <button id="play-pause-btn" class="ctrl-btn main-play" aria-label="Play or Pause">
+            <button id="play-pause-btn" class="ctrl-btn main-play" aria-label="Play or Pause" type="button">
               <svg id="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               <svg id="icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
             </button>
 
-            <button id="skip-btn" class="ctrl-btn secondary" aria-label="Skip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
-            <button class="ctrl-btn secondary" disabled title="Repeat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+            <button id="skip-btn" class="ctrl-btn secondary" aria-label="Skip" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+            <button class="ctrl-btn secondary" disabled title="Repeat" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
           </div>
 
           <p id="listener-note" class="listener-info-note">Only the room host can control playback position and skip songs.</p>
 
           <div class="action-bar-bottom">
-            <label class="btn btn-outline-pink btn-sm">
+            <button type="button" class="btn btn-outline-pink btn-sm trigger-upload-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add to Queue
-              <input id="file-input" type="file" accept=".mp3,audio/mpeg" hidden />
-            </label>
-            <button id="share-room-btn" class="btn btn-ghost-purple btn-sm">
+              + Add to Queue
+            </button>
+            <button id="share-room-btn" class="btn btn-ghost-purple btn-sm" type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
               Share Room
             </button>
@@ -224,12 +230,22 @@
       <!-- Queue Section Right -->
       <section class="queue-section glass-card">
         <div class="queue-header">
-          <h3>Queue</h3>
-          <span id="queue-count-badge" class="count-tag">0 songs</span>
+          <div class="queue-header-left">
+            <h3>Queue</h3>
+            <span id="queue-count-badge" class="count-tag">0 songs</span>
+          </div>
+          <button type="button" class="btn btn-solid-pink btn-sm trigger-upload-btn">
+            + Add Song
+          </button>
         </div>
 
         <ul id="queue-list" class="queue-items-list"></ul>
-        <p id="queue-empty" class="queue-empty-msg">No upcoming tracks in queue.<br/>Click <strong>+ Add to Queue</strong> to upload an MP3!</p>
+        <div id="queue-empty" class="queue-empty-msg">
+          <p>No upcoming tracks in queue.</p>
+          <button type="button" class="btn btn-outline-pink btn-sm trigger-upload-btn" style="margin-top: 12px;">
+            Upload MP3
+          </button>
+        </div>
       </section>
     </div>
   </main>
@@ -238,7 +254,7 @@
   <audio id="audio-el" preload="auto" playsinline></audio>
 
   <!-- Mobile Play Button -->
-  <button id="enable-audio-btn" class="enable-audio-float-btn hidden">
+  <button id="enable-audio-btn" class="enable-audio-float-btn hidden" type="button">
     ▶ Tap to Start Listening in Sync
   </button>
 
